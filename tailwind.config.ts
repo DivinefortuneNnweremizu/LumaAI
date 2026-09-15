@@ -1,0 +1,72 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./features/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: ["class", '[data-theme="dark"]'],
+  theme: {
+    extend: {
+      colors: {
+        primary: "var(--primary-color)",
+        "on-primary": "var(--on-primary-color)",
+        "primary-container": "var(--primary-container-color)",
+        "on-primary-container": "var(--on-primary-container-color)",
+        secondary: "var(--secondary-color)",
+        "on-secondary": "var(--on-secondary-color)",
+        "secondary-container": "var(--secondary-container-color)",
+        "on-secondary-container": "var(--on-secondary-container-color)",
+        tertiary: "var(--tertiary-color)",
+        "on-tertiary": "var(--on-tertiary-color)",
+        "tertiary-container": "var(--tertiary-container-color)",
+        "on-tertiary-container": "var(--on-tertiary-container-color)",
+        error: "var(--error-color)",
+        "on-error": "var(--on-error-color)",
+        "error-container": "var(--error-container-color)",
+        "on-error-container": "var(--on-error-container-color)",
+        success: "var(--success-color)",
+        "on-success": "var(--on-success-color)",
+        "success-container": "var(--success-container-color)",
+        "on-success-container": "var(--on-success-container-color)",
+        warning: "var(--warning-color)",
+        "on-warning": "var(--on-warning-color)",
+        "warning-container": "var(--warning-container-color)",
+        "on-warning-container": "var(--on-warning-container-color)",
+        background: "var(--background-color)",
+        "on-background": "var(--on-background-color)",
+        surface: "var(--surface-color)",
+        "on-surface": "var(--on-surface-color)",
+        "surface-variant": "var(--surface-variant-color)",
+        "on-surface-variant": "var(--on-surface-variant-color)",
+        outline: "var(--outline-color)",
+        "outline-variant": "var(--outline-variant-color)",
+        "surface-container": "var(--surface-container-color)",
+        "surface-container-high": "var(--surface-container-high-color)",
+        "surface-container-highest": "var(--surface-container-highest-color)",
+      },
+      fontFamily: {
+        sans: ["var(--font-family-sans)", "Nunito Sans", "sans-serif"],
+        display: ["var(--font-family-display)", "Nunito Sans", "sans-serif"],
+        mono: ["var(--font-family-mono)", "monospace"],
+      },
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        full: "var(--radius-full)",
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum VersionStatus {
+  GENERATING
+  READY
+  FAILED
+}
+
+enum GenerationType {
+  FULL
+  SECTION
+}
+
+enum UploadKind {
+  SCREENSHOT
+  MOODBOARD
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+model User {
+  id            String         @id
+  email         String         @unique
+  fullName      String?
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  subscription  Subscription?
+  projects      Project[]
+  uploads       Upload[]
+  aiLogs        AIGenerationLog[]
+  payments      Payment[]
+  exportEvents  ExportEvent[]
+}
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  Plan               @default(FREE)
+  status                SubscriptionStatus @default(FREE)
+  flutterwaveCustomerId String?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  payments              Payment[]
+}
+
+model Project {
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  status           ProjectStatus @default(ACTIVE)
+  currentVersionId String?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  versions         Version[]     @relation("ProjectVersions")
+  uploads          Upload[]
+  aiLogs           AIGenerationLog[]
+  exportEvents     ExportEvent[]
+
+  @@index([userId, status, deletedAt])
+}
+
+model Version {
+  id                   String         @id @default(uuid())
+  projectId            String
+  project              Project        @relation("ProjectVersions", fields: [projectId], references: [id], onDelete: Cascade)
+  versionNumber        Int
+  status               VersionStatus  @default(READY)
+  content              String         @db.Text
+  structuredContent    Json
+  generationType       GenerationType @default(FULL)
+  regeneratedSections  String[]
+  sourceVersionId      String?
+  sourceVersion        Version?       @relation("VersionHistory", fields: [sourceVersionId], references: [id])
+  derivedVersions      Version[]      @relation("VersionHistory")
+  clarifications       Json?
+  assumptions          Json?
+  createdAt            DateTime       @default(now())
+
+  uploads              Upload[]
+  aiLogs               AIGenerationLog[]
+  exportEvents         ExportEvent[]
+
+  @@unique([projectId, versionNumber])
+  @@index([projectId, createdAt])
+}
+
+model Upload {
+  id               String     @id @default(uuid())
+  projectId        String
+  project          Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedInVersionId  String?
+  usedInVersion    Version?   @relation(fields: [usedInVersionId], references: [id])
+  kind             UploadKind
+  storagePath      String
+  mimeType         String
+  sizeBytes        Int
+  order            Int        @default(0)
+  deletedAt        DateTime?
+  createdAt        DateTime   @default(now())
+
+  @@index([projectId, usedInVersionId])
+}
+
+model AIGenerationLog {
+  id              String   @id @default(uuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resultVersionId String?
+  resultVersion   Version? @relation(fields: [resultVersionId], references: [id])
+  model           String
+  purpose         String
+  status          String
+  durationMs      Int
+  errorMessage    String?
+  reviewNotes     Json?
+  createdAt       DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model Payment {
+  id                       String        @id @default(uuid())
+  userId                   String
+  user                     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId           String?
+  subscription             Subscription? @relation(fields: [subscriptionId], references: [id])
+  reference                String        @unique
+  flutterwaveTransactionId String?       @unique
+  amount                   Float
+  currency                 String        @default("USD")
+  status                   PaymentStatus @default(PENDING)
+  plan                     Plan          @default(PRO)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  events                   PaymentEvent[]
+}
+
+model PaymentEvent {
+  id             String    @id @default(uuid())
+  paymentId      String?
+  payment        Payment?  @relation(fields: [paymentId], references: [id])
+  eventType      String
+  rawPayload     Json
+  signatureValid Boolean
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([paymentId])
+}
+
+model ExportEvent {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versionId String
+  version   Version  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  format    String   @default("markdown")
+  createdAt DateTime @default(now())
+}

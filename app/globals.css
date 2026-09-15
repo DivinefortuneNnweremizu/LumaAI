@@ -1,0 +1,28 @@
+@import "../tokens/design-tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: var(--font-family-sans), 'Nunito Sans', sans-serif;
+    color: var(--on-background-color);
+    background-color: var(--background-color);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    color: var(--on-background-color);
+    background-color: var(--background-color);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Custom focus-visible indicator following accessibility.md */
+  :focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
