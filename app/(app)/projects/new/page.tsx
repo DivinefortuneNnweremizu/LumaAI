@@ -1,141 +1,148 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { PromptComposer } from "@/components/project/prompt-composer";
-import { ClarificationCard } from "@/components/project/clarification-card";
-import { ClarificationQuestion } from "@/services/ai/types";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { AlertCircle, ArrowLeft, PanelRightClose, PanelRightOpen, Sparkles } from "lucide-react";
+import { ChatComposer } from "@/components/project/chat-composer";
+import { ChatMessageBubble } from "@/components/project/chat-message";
+import { ClarificationPrompt } from "@/components/project/clarification-prompt";
+import { MarkdownViewer } from "@/components/editor/markdown-viewer";
+import { useProjectChat } from "@/features/projects/use-project-chat";
+import { FREE_ENTITLEMENTS } from "@/services/billing/entitlements";
 
 export default function NewProjectPage() {
-  const router = useRouter();
-  const [step, setStep] = useState<"compose" | "clarify" | "generating">("compose");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [questions, setQuestions] = useState<ClarificationQuestion[]>([]);
-  const [statusMessage, setStatusMessage] = useState("Understanding your product...");
+  const searchParams = useSearchParams();
+  const existingProjectId = searchParams.get("project");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleComposeSubmit = async (inputTitle: string, inputDescription: string) => {
-    setTitle(inputTitle);
-    setDescription(inputDescription);
-    setStep("clarify");
+  const {
+    project,
+    messages,
+    pendingQuestions,
+    isThinking,
+    statusMessage,
+    storageError,
+    versions,
+    activeVersion,
+    isPanelOpen,
+    setIsPanelOpen,
+    setActiveVersionNumber,
+    sendMessage,
+    submitClarification,
+  } = useProjectChat(existingProjectId);
 
-    // Fetch up to 2 clarification questions
-    try {
-      const res = await fetch("/api/design/clarify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideaDescription: inputDescription }),
-      });
-      const data = await res.json();
-      if (data.data?.questions) {
-        setQuestions(data.data.questions);
-      } else {
-        setQuestions([
-          {
-            id: "q1",
-            question: "What primary user role or persona should be emphasized first in the workflow?",
-            context: "Clarifying target user focus for initial navigation.",
-          },
-          {
-            id: "q2",
-            question: "Will users need offline access or mobile push notifications?",
-            context: "Determining platform capabilities and technical bounds.",
-          },
-        ]);
-      }
-    } catch {
-      setQuestions([
-        {
-          id: "q1",
-          question: "What primary user role should be prioritized?",
-          context: "Clarifying target audience scope.",
-        },
-      ]);
-    }
-  };
+  const entitlements = FREE_ENTITLEMENTS;
 
-  const handleClarificationComplete = async (answers: Array<{ question: string; answer: string }>) => {
-    setStep("generating");
-
-    // Staged progress updates per ai-behavior.md
-    const stages = [
-      "Understanding your product...",
-      "Identifying design patterns...",
-      "Creating user flows & Information Architecture...",
-      "Writing 13-section design.md...",
-      "Reviewing accessibility & finalizing specification...",
-    ];
-
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      if (i < stages.length) {
-        setStatusMessage(stages[i]);
-      } else {
-        clearInterval(interval);
-      }
-    }, 1200);
-
-    try {
-      const res = await fetch("/api/design/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectName: title,
-          ideaDescription: description,
-          answers,
-        }),
-      });
-
-      const data = await res.json();
-      clearInterval(interval);
-      if (data.data?.projectId) {
-        router.push(`/projects/${data.data.projectId}`);
-      } else {
-        router.push("/projects/demo-1");
-      }
-    } catch {
-      clearInterval(interval);
-      router.push("/projects/demo-1");
-    }
-  };
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, pendingQuestions, isThinking]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/projects"
-          className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-        <h1 className="text-xl font-bold text-on-surface">New Specification</h1>
+    <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-9rem)] flex flex-col md:flex-row gap-4">
+      {/* Chat Column */}
+      <div className={`flex flex-col min-h-0 ${isPanelOpen ? "md:w-[420px] shrink-0" : "flex-1 max-w-3xl mx-auto w-full"}`}>
+        <div className="flex items-center gap-3 pb-4 shrink-0">
+          <Link
+            href="/projects"
+            className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <h1 className="text-xl font-bold text-on-surface truncate flex-1">
+            {project ? project.name : "New Specification"}
+          </h1>
+          {versions.length > 0 && (
+            <button
+              onClick={() => setIsPanelOpen((v) => !v)}
+              className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors shrink-0"
+              title={isPanelOpen ? "Hide specification panel" : "Show specification panel"}
+            >
+              {isPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
+
+        {storageError && (
+          <div
+            role="alert"
+            className="mb-3 p-3 rounded-md bg-error-container border border-error/30 text-on-error-container flex items-start gap-2.5 text-xs font-medium shrink-0"
+          >
+            <AlertCircle className="w-4 h-4 text-error shrink-0 mt-0.5" />
+            <span>{storageError}</span>
+          </div>
+        )}
+
+        {messages.length === 0 && !isThinking ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-2 max-w-sm">
+              <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mx-auto">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h2 className="text-base font-bold text-on-surface">Describe your product idea</h2>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Tell Luma what you&apos;re building. You can attach up to {entitlements.maxImagesPerMessage} reference
+                images. Luma will ask up to two clarification questions, then write a full 13-section design.md.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-5 pb-4">
+            {messages.map((m) => (
+              <div key={m.id} className="space-y-3">
+                <ChatMessageBubble message={m} />
+                {m.clarificationQuestions && pendingQuestions && (
+                  <div className="pl-10">
+                    <ClarificationPrompt
+                      questions={pendingQuestions}
+                      onSubmit={submitClarification}
+                      isLoading={isThinking}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {isThinking && (
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div className="px-4 py-2.5 rounded-xl rounded-tl-sm bg-surface-container text-on-surface-variant text-xs font-medium flex items-center">
+                  {statusMessage || "Thinking..."}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="pt-3 shrink-0">
+          <ChatComposer
+            onSend={sendMessage}
+            isLoading={isThinking}
+            maxImages={entitlements.maxImagesPerMessage}
+            placeholder={
+              pendingQuestions
+                ? "Answer the questions above to continue..."
+                : versions.length > 0
+                ? "Ask for a change to the specification..."
+                : "Describe your product idea..."
+            }
+          />
+        </div>
       </div>
 
-      {step === "compose" && (
-        <PromptComposer onSubmit={handleComposeSubmit} />
-      )}
-
-      {step === "clarify" && (
-        <ClarificationCard
-          questions={questions}
-          onComplete={handleClarificationComplete}
-        />
-      )}
-
-      {step === "generating" && (
-        <div className="p-12 rounded-xl bg-surface border border-outline-variant text-center space-y-6 animate-in fade-in duration-200">
-          <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mx-auto animate-pulse">
-            <Sparkles className="w-6 h-6 text-secondary" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-base font-bold text-on-surface">{statusMessage}</h3>
-            <p className="text-xs text-on-surface-variant">
-              Luma is assembling facts and labeling explicit assumptions for your design.md document.
-            </p>
-          </div>
+      {/* Specification Panel */}
+      {isPanelOpen && activeVersion && project && (
+        <div className="flex-1 min-h-0 min-w-0 border-l border-outline-variant/60 pl-4 overflow-y-auto animate-in fade-in duration-200">
+          <MarkdownViewer
+            content={activeVersion.markdown}
+            projectName={project.name}
+            versionNumber={activeVersion.versionNumber}
+            compact
+            availableVersions={versions.map((v) => v.versionNumber)}
+            onSelectVersion={setActiveVersionNumber}
+          />
         </div>
       )}
     </div>

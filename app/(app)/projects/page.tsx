@@ -1,27 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileText, Calendar, ArrowRight, Sparkles } from "lucide-react";
-
-interface MockProject {
-  id: string;
-  name: string;
-  description: string;
-  updatedAt: string;
-  versionCount: number;
-}
+import { Plus, FileText, Calendar, ArrowRight } from "lucide-react";
+import { getProjects } from "@/features/projects/store";
+import { Project } from "@/features/projects/types";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<MockProject[]>([
-    {
-      id: "demo-1",
-      name: "Acme Analytics Mobile App",
-      description: "Mobile analytics dashboard specification with real-time charts and export features.",
-      updatedAt: "Today",
-      versionCount: 2,
-    },
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    setProjects(getProjects());
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">

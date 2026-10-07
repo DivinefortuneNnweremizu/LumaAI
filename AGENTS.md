@@ -397,7 +397,7 @@ The AI must:
 Includes:
 
 - 3 active projects
-- text-only input
+- text input plus up to 3 images per message (screenshots/moodboards)
 - basic design.md generation
 - markdown export
 - limited monthly generations
@@ -409,8 +409,7 @@ Includes:
 Includes:
 
 - unlimited projects
-- screenshot analysis
-- moodboard analysis
+- unlimited images per message (screenshot & moodboard analysis)
 - mixed input support
 - advanced AI analysis
 - section regeneration

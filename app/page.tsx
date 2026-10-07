@@ -20,13 +20,13 @@ export default function LandingPage() {
 
         <nav className="flex items-center gap-6">
           <Link
-            href="/projects"
+            href="/sign-up"
             className="text-sm font-semibold text-on-background hover:text-primary transition-colors"
           >
-            Dashboard
+            Sign In / Sign Up
           </Link>
           <Link
-            href="/projects"
+            href="/sign-up"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-on-primary font-medium text-sm hover:opacity-95 transition-all shadow-sm focus-visible:outline-none"
           >
             Get Started
@@ -52,7 +52,7 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
           <Link
-            href="/projects"
+            href="/sign-up"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-md bg-primary text-on-primary font-semibold text-base shadow-sm hover:opacity-95 transition-all focus-visible:outline-none"
           >
             Get Started Now

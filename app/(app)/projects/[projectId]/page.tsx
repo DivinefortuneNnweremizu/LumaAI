@@ -1,9 +1,12 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MarkdownViewer } from "@/components/editor/markdown-viewer";
+import { getProject } from "@/features/projects/store";
+import { Project } from "@/features/projects/types";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileQuestion } from "lucide-react";
 
 const DEMO_SPEC_CONTENT = `# Acme Analytics Mobile App
 
@@ -100,29 +103,111 @@ Clean, single-column scrollable view featuring large numeric indicators and comp
 | 1.0.0 | 2026-09-15 | Initial specification generated |
 `;
 
+function placeholderSpecContent(project: Project): string {
+  return `# ${project.name}
+
+| Field | Value |
+|---|---|
+| **Version** | 1 (draft) |
+| **Status** | Awaiting generation |
+
+## Overview
+
+${project.description || "*No description provided yet.*"}
+
+## Next Step
+
+This specification hasn't been generated yet. Start a new specification from this idea to have Luma ask clarification questions and produce the full 13-section design.md.
+`;
+}
+
 export default function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ projectId: string }>;
 }) {
   const resolvedParams = use(params);
+  const router = useRouter();
+  const isDemo = resolvedParams.projectId === "demo-1";
+
+  const [project, setProject] = useState<Project | null | undefined>(isDemo ? undefined : null);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const found = getProject(resolvedParams.projectId) ?? null;
+    // Chat-created projects live in the conversational workspace, where
+    // the chat and the spec panel stay together.
+    if (found?.chat) {
+      router.replace(`/projects/new?project=${resolvedParams.projectId}`);
+      return;
+    }
+    setProject(found);
+  }, [isDemo, resolvedParams.projectId, router]);
+
+  const backLink = (
+    <Link
+      href="/projects"
+      className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors"
+    >
+      <ArrowLeft className="w-4 h-4" />
+    </Link>
+  );
+
+  if (isDemo) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          {backLink}
+          <h1 className="text-xl font-bold text-on-surface">Acme Analytics Mobile App</h1>
+        </div>
+
+        <MarkdownViewer
+          content={DEMO_SPEC_CONTENT}
+          projectName="Acme Analytics Mobile App"
+          versionNumber={1}
+        />
+      </div>
+    );
+  }
+
+  if (project === null) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          {backLink}
+          <h1 className="text-xl font-bold text-on-surface">Specification not found</h1>
+        </div>
+        <div className="w-full p-12 rounded-xl bg-surface border border-outline-variant text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
+            <FileQuestion className="w-6 h-6" />
+          </div>
+          <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
+            We couldn&apos;t find that specification. It may have been created in a different browser.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return null;
+  }
+
+  const latestVersion = project.versions && project.versions.length > 0
+    ? project.versions[project.versions.length - 1]
+    : null;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Link
-          href="/projects"
-          className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-        <h1 className="text-xl font-bold text-on-surface">Acme Analytics Mobile App</h1>
+        {backLink}
+        <h1 className="text-xl font-bold text-on-surface">{project.name}</h1>
       </div>
 
       <MarkdownViewer
-        content={DEMO_SPEC_CONTENT}
-        projectName="Acme Analytics Mobile App"
-        versionNumber={1}
+        content={latestVersion ? latestVersion.markdown : placeholderSpecContent(project)}
+        projectName={project.name}
+        versionNumber={latestVersion ? latestVersion.versionNumber : 1}
       />
     </div>
   );

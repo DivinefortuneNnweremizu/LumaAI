@@ -20,8 +20,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           id={inputId}
           ref={ref}
-          className={`w-full min-h-[44px] px-3.5 py-2.5 rounded-md bg-surface text-on-surface border border-outline-variant text-sm transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary ${
-            error ? "border-error focus:border-error focus:ring-error" : ""
+          className={`w-full min-h-[44px] px-3.5 py-2.5 rounded-md bg-surface text-on-surface border text-sm transition-all placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 ${
+            error
+              ? "border-error hover:border-error focus:border-error focus:ring-error"
+              : "border-outline-variant hover:border-outline focus:border-primary focus:ring-primary"
           } ${className}`}
           {...props}
         />
